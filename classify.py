@@ -5,6 +5,8 @@ import pandas as pd
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import nltk
 
+SENTIMENT_THRESHOLD = -0.75
+
 # Download the VADER lexicon
 nltk.download('vader_lexicon')
 
@@ -31,7 +33,7 @@ def extract_features(data):
     features['reactions_minus_one'] = [item['payload'].get('issue', {}).get('reactions', {}).get('-1', 0) for item in data]
     return features
 
-def filter_by_reactions(data, threshold):
+def filter_by_reactions(data, threshold=5):
     # Extract features
     features = extract_features(data)
 
@@ -58,8 +60,8 @@ def filter_negative_sentiment(data):
         ]), axis=1
     )
     features['sentiment'] = features['combined_text'].apply(classify_sentiment)
-    filtered_data = features[features['sentiment'] >= 0]  # Filter out negative sentiment
-    non_filtered_data = features[features['sentiment'] < 0]  # Rows that do not pass the filter
+    filtered_data = features[features['sentiment'] >= SENTIMENT_THRESHOLD]  # Filter out negative sentiment
+    non_filtered_data = features[features['sentiment'] < SENTIMENT_THRESHOLD]  # Rows that do not pass the filter
     return filtered_data, non_filtered_data
 
 def print_events():
@@ -75,16 +77,12 @@ def print_events():
 
 if __name__ == "__main__":
     file_path = './dump/gitfeed/events.bson'
-    data = load_bson_data(file_path, 1000)
-    # print(json.dumps(data, indent=4, default=str))
+    data = load_bson_data(file_path, 10000)
 
-    # Example usage of filter_by_reactions
-    threshold = 5
-    filtered_data = filter_by_reactions(data, threshold)
+    filtered_data = filter_by_reactions(data)
     print("Filtered by reactions:")
     print(filtered_data)
 
-    # Example usage of filter_negative_sentiment
     filtered_sentiment_data, non_filtered_sentiment_data = filter_negative_sentiment(data)
     print("Filtered by sentiment:")
     print(filtered_sentiment_data)
